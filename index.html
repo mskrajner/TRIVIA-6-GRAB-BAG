@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Trivia Time</title>
+  <style>
+    body {
+      background: black;
+      color: white;
+      font-size: 24px;
+      font-weight: normal;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      text-align: center;
+      flex-direction: column;
+      transition: background 0.5s, color 0.5s;
+    }
+    .bold { font-size: 36px; font-weight: bold; }
+    .option { display: block; margin: 10px 0; font-size: 24px; }
+    .correct { font-weight: bold; color: black; }
+    button { margin-top: 20px; font-size: 20px; padding: 10px 20px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div id="category" class="bold">Turn your phone upright for trivia!</div>
+  <div id="question"></div>
+  <div id="options"></div>
+  <button id="showAnswerBtn" style="display:none">Show Answer</button>
+
+  <script>
+    const questions = [
+      {
+        category: "GRAB BAG",
+        question: "What kind of soda was famously introduced in the late 1960s with a jingle that sang, ‘It’s the real thing’?",
+        options: ["A. Pepsi", "B. Coca-Cola", "C. RC Cola", "D. Tab"],
+        answer: "B"
+      },
+      {
+        category: "GRAB BAG",
+        question: "In the 1970s, what was Tang famously advertised as?",
+        options: ["A. The astronaut's choice", "B. A milk replacement", "C. The drink of the future", "D. Nature’s soda"],
+        answer: "A"
+      },
+      {
+        category: "GRAB BAG",
+        question: "Which U.S. president said, ‘I am not a crook’?",
+        options: ["A. Lyndon B. Johnson", "B. Gerald Ford", "C. Richard Nixon", "D. Jimmy Carter"],
+        answer: "C"
+      },
+      {
+        category: "GRAB BAG",
+        question: "What car was often called ‘The Love Bug’?",
+        options: ["A. Mustang", "B. VW Beetle", "C. Gremlin", "D. Pinto"],
+        answer: "B"
+      },
+      {
+        category: "GRAB BAG",
+        question: "What food was advertised as ‘the San Francisco treat’?",
+        options: ["A. Hamburger Helper", "B. SpaghettiOs", "C. Rice-A-Roni", "D. Chef Boyardee"],
+        answer: "C"
+      },
+      {
+        category: "GRAB BAG",
+        question: "What did the slogan ‘Let your fingers do the walking’ promote?",
+        options: ["A. Shoe stores", "B. Pay phones", "C. The Yellow Pages", "D. Typing schools"],
+        answer: "C"
+      }
+    ];
+
+    let hasQuestion = false;
+    let lastAnswerTime = 0;
+    let showingAnswer = false;
+    let currentQuestion = null;
+
+    function pickQuestion() {
+      const randomIndex = Math.floor(Math.random() * questions.length);
+      return questions[randomIndex];
+    }
+
+    function displayQuestion(data) {
+      currentQuestion = data;
+      document.body.style.background = 'yellow';
+      document.getElementById('category').style.color = 'black';
+      document.getElementById('question').style.color = 'black';
+
+      document.getElementById('category').textContent = data.category;
+      document.getElementById('question').textContent = data.question;
+
+      const optionsHTML = data.options.map(option => {
+        const letter = option.charAt(0);
+        return `<span class="option" data-letter="${letter}">${option}</span>`;
+      }).join('');
+
+      document.getElementById('options').innerHTML = optionsHTML;
+      document.getElementById('options').style.color = 'black';
+      document.getElementById('showAnswerBtn').style.display = 'inline-block';
+
+      showingAnswer = false;
+    }
+
+    document.getElementById('showAnswerBtn').addEventListener('click', () => {
+      const correctLetter = currentQuestion.answer;
+      const options = Array.from(document.querySelectorAll('.option'));
+
+      options.forEach(option => {
+        const letter = option.getAttribute('data-letter');
+        if (letter === correctLetter) {
+          option.classList.add('correct');
+        } else {
+          option.remove();
+        }
+      });
+
+      lastAnswerTime = Date.now();
+      showingAnswer = true;
+    });
+
+    function applyHighlight(show) {
+      const now = Date.now();
+      const delayPassed = now - lastAnswerTime > 3000;
+
+      if (show && !hasQuestion && (!showingAnswer || delayPassed)) {
+        hasQuestion = true;
+        const q = pickQuestion();
+        displayQuestion(q);
+      } else if (!show) {
+        hasQuestion = false;
+        document.body.style.background = 'black';
+        document.getElementById('category').style.color = 'white';
+        document.getElementById('category').textContent = 'Turn your phone upright for trivia!';
+        document.getElementById('question').textContent = '';
+        document.getElementById('options').innerHTML = '';
+        document.getElementById('showAnswerBtn').style.display = 'none';
+      }
+    }
+
+    function handleOrientation() {
+      const o = screen.orientation?.type || window.orientation;
+      const isPortrait = (typeof o === 'string' && o.includes('portrait')) ||
+                         (typeof o === 'number' && (o === 0 || o === 180));
+      applyHighlight(isPortrait);
+    }
+
+    function handleMotion(event) {
+      const z = event.accelerationIncludingGravity?.z || 0;
+      const isUpright = z > 7;
+      applyHighlight(isUpright);
+    }
+
+    function initListeners() {
+      if ('DeviceMotionEvent' in window) {
+        if (typeof DeviceMotionEvent.requestPermission === 'function') {
+          DeviceMotionEvent.requestPermission().then(response => {
+            if (response === 'granted') {
+              window.addEventListener('devicemotion', handleMotion);
+            } else {
+              fallbackToOrientation();
+            }
+          }).catch(fallbackToOrientation);
+        } else {
+          window.addEventListener('devicemotion', handleMotion);
+        }
+      } else {
+        fallbackToOrientation();
+      }
+    }
+
+    function fallbackToOrientation() {
+      if ('screen' in window && 'orientation' in screen) {
+        screen.orientation.addEventListener('change', handleOrientation);
+        handleOrientation();
+      } else if ('orientation' in window) {
+        window.addEventListener('orientationchange', handleOrientation);
+        handleOrientation();
+      } else {
+        alert('Orientation detection not supported.');
+      }
+    }
+
+    initListeners();
+  </script>
+</body>
+</html>
