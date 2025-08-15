@@ -75,15 +75,11 @@
     let lastAnswerTime = 0;
     let showingAnswer = false;
     let currentQuestion = null;
-
-    function pickQuestion() {
-      const randomIndex = Math.floor(Math.random() * questions.length);
-      return questions[randomIndex];
-    }
+    let currentIndex = -1; // sequential index
 
     function displayQuestion(data) {
       currentQuestion = data;
-      document.body.style.background = 'yellow';
+      document.body.style.background = '#FFD580'; // updated color
       document.getElementById('category').style.color = 'black';
       document.getElementById('question').style.color = 'black';
 
@@ -100,6 +96,11 @@
       document.getElementById('showAnswerBtn').style.display = 'inline-block';
 
       showingAnswer = false;
+    }
+
+    function displayNextQuestion() {
+      currentIndex = (currentIndex + 1) % questions.length;
+      displayQuestion(questions[currentIndex]);
     }
 
     document.getElementById('showAnswerBtn').addEventListener('click', () => {
@@ -125,8 +126,7 @@
 
       if (show && !hasQuestion && (!showingAnswer || delayPassed)) {
         hasQuestion = true;
-        const q = pickQuestion();
-        displayQuestion(q);
+        displayNextQuestion();
       } else if (!show) {
         hasQuestion = false;
         document.body.style.background = 'black';
